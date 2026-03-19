@@ -1,0 +1,68 @@
+<!-- 创建 convert.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel转JSON工具</title>
+</head>
+<body>
+    <h1>Excel题库转换工具</h1>
+    <input type="file" id="excelFile" accept=".xlsx,.xls">
+    <button onclick="convert()">转换并下载</button>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function convert() {
+            const file = document.getElementById('excelFile').files[0];
+            if (!file) return alert('请选择文件');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                // 转换格式
+                const questions = jsonData.map((row, index) => ({
+                    id: index + 1,
+                    type: detectType(row),
+                    question: row.题目 || '',
+                    options: [
+                        row.选项A || '',
+                        row.选项B || '',
+                        row.选项C || '',
+                        row.选项D || ''
+                    ].filter(opt => opt),
+                    answer: row.答案 || '',
+                    explanation: row.解析 || '',
+                    category: row.分类 || '未分类',
+                    difficulty: parseInt(row.难度) || 1
+                }));
+                
+                // 下载
+                const dataStr = JSON.stringify({ questions }, null, 2);
+                downloadJSON(dataStr, 'questions.json');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function detectType(row) {
+            const answer = row.答案 || '';
+            if (answer.length > 1) return 'multiple';
+            if (row.题目 && row.题目.includes('判断')) return 'judge';
+            return 'single';
+        }
+        
+        function downloadJSON(data, filename) {
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('转换完成！请将questions.json放入应用文件夹');
+        }
+    </script>
+</body>
+</html>

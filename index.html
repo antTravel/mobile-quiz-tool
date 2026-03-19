@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考试练习工具</title>
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- index.html add file for ios-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meat name="apple-mobile-web-app-capable" content="yes"> <!--ios fullscreen run-->
+    <meat name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <!-- ios status for adaptation-->
+    <!-- end for ios-->>
+
+
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航 -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-graduation-cap"></i>
+                <span>考试练习</span>
+            </div>
+            <div class="nav-actions">
+                <button id="themeToggle"><i class="fas fa-moon"></i></button>
+                <button id="exportBtn" title="导出数据"><i class="fas fa-download"></i></button>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <div class="container">
+            <!-- 主页 -->
+            <div id="homePage" class="page active">
+                <div class="hero">
+                    <h1><i class="fas fa-brain"></i> 智能考试练习系统</h1>
+                    <p class="subtitle">离线使用 · 随机组卷 · 错题回顾</p>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <i class="fas fa-book-open"></i>
+                        <h3 id="totalQuestions">0</h3>
+                        <p>总题量</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-times-circle"></i>
+                        <h3 id="wrongCount">0</h3>
+                        <p>错题数</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-chart-line"></i>
+                        <h3 id="accuracyRate">0%</h3>
+                        <p>正确率</p>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-primary" id="startExamBtn">
+                        <i class="fas fa-play-circle"></i> 开始练习
+                    </button>
+                    <button class="btn-secondary" id="wrongQuestionsBtn">
+                        <i class="fas fa-history"></i> 错题本
+                    </button>
+                    <button class="btn-secondary" id="settingsBtn">
+                        <i class="fas fa-cog"></i> 设置
+                    </button>
+                </div>
+
+                <div class="recent-activity">
+                    <h3><i class="fas fa-history"></i> 最近练习</h3>
+                    <div id="recentSessions"></div>
+                </div>
+            </div>
+
+            <!-- 考试页面 -->
+            <div id="examPage" class="page">
+                <div class="exam-header">
+                    <div class="exam-info">
+                        <button class="btn-back" id="backToHome"><i class="fas fa-arrow-left"></i></button>
+                        <h3>正在练习</h3>
+                    </div>
+                    <div class="exam-timer">
+                        <i class="fas fa-clock"></i>
+                        <span id="timer">00:00</span>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                    <div class="progress-text">
+                        <span id="currentQuestionNum">1</span> / <span id="totalQuestionsNum">10</span>
+                    </div>
+                </div>
+
+                <div class="question-container">
+                    <div class="question-header">
+                        <span class="question-type" id="questionType">单选题</span>
+                        <span class="question-difficulty" id="questionDifficulty">简单</span>
+                    </div>
+                    <h2 class="question-text" id="questionText"></h2>
+                    
+                    <div class="options-container" id="optionsContainer">
+                        <!-- 选项会动态生成 -->
+                    </div>
+
+                    <div class="explanation-box" id="explanationBox" style="display: none;">
+                        <h4><i class="fas fa-lightbulb"></i> 答案解析</h4>
+                        <p id="explanationText"></p>
+                    </div>
+                </div>
+
+                <div class="navigation-buttons">
+                    <button class="btn-nav" id="prevQuestion" disabled>
+                        <i class="fas fa-chevron-left"></i> 上一题
+                    </button>
+                    <div class="nav-center">
+                        <button class="btn-icon" id="showExplanationBtn" title="查看解析">
+                            <i class="fas fa-question-circle"></i>
+                        </button>
+                        <button class="btn-icon" id="markQuestionBtn" title="标记此题">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                    </div>
+                    <button class="btn-nav" id="nextQuestion">
+                        下一题 <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 错题本页面 -->
+            <div id="wrongPage" class="page">
+                <div class="page-header">
+                    <button class="btn-back" id="backFromWrong"><i class="fas fa-arrow-left"></i></button>
+                    <h2><i class="fas fa-exclamation-circle"></i> 错题本</h2>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="categoryFilter">
+                        <option value="">全部分类</option>
+                    </select>
+                    <select id="difficultyFilter">
+                        <option value="">全部难度</option>
+                        <option value="1">简单</option>
+                        <option value="2">中等</option>
+                        <option value="3">困难</option>
+                    </select>
+                    <button class="btn-small" id="clearWrongBtn">
+                        <i class="fas fa-trash"></i> 清空
+                    </button>
+                </div>
+
+                <div class="wrong-list" id="wrongList">
+                    <!-- 错题列表会动态生成 -->
+                </div>
+            </div>
+
+            <!-- 设置页面 -->
+            <div id="settingsPage" class="page">
+                <div class="page-header">
+                    <button class="btn-back" id="backFromSettings"><i class="fas fa-arrow-left"></i></button>
+                    <h2><i class="fas fa-cog"></i> 设置</h2>
+                </div>
+
+                <div class="settings-container">
+                    <div class="setting-group">
+                        <h3><i class="fas fa-file-import"></i> 题库管理</h3>
+                        <div class="setting-item">
+                            <label>导入Excel题库</label>
+                            <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;">
+                            <button class="btn-small" id="importExcelBtn">
+                                <i class="fas fa-upload"></i> 选择文件
+                            </button>
+                            <div id="importStatus"></div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label>导出错题本</label>
+                            <button class="btn-small" id="exportWrongBtn">
+                                <i class="fas fa-download"></i> 导出为JSON
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <h3><i class="fas fa-clock"></i> 练习设置</h3>
+                        <div class="setting-item">
+                            <label>每题时间限制（秒）</label>
+                            <input type="number" id="timePerQuestion" value="120" min="30" max="600">
+                        </div>
+                        <div class="setting-item">
+                            <label>每次练习题数</label>
+                            <select id="questionsPerSession">
+                                <option value="10">10题</option>
+                                <option value="20" selected>20题</option>
+                                <option value="30">30题</option>
+                                <option value="50">50题</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <h3><i class="fas fa-mobile-alt"></i> 应用设置</h3>
+                        <div class="setting-item">
+                            <label>暗色模式</label>
+                            <label class="switch">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>振动反馈</label>
+                            <label class="switch">
+                                <input type="checkbox" id="vibrationToggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <div class="bottom-nav">
+            <button class="nav-item active" data-page="homePage">
+                <i class="fas fa-home"></i>
+                <span>首页</span>
+            </button>
+            <button class="nav-item" data-page="examPage">
+                <i class="fas fa-pen"></i>
+                <span>练习</span>
+            </button>
+            <button class="nav-item" data-page="wrongPage">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>错题</span>
+            </button>
+            <button class="nav-item" data-page="settingsPage">
+                <i class="fas fa-user"></i>
+                <span>我的</span>
+            </button>
+        </div>
+
+        <!-- 消息提示 -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
