@@ -1084,7 +1084,7 @@ class ExamApp {
                     options: this.parseOptions(row),
                     answer: this.parseAnswer(row),
                     explanation: row['解析'] || row['explanation'] || '',
-                    category: row['分类'] || row['category'] || '未分类',
+                    category: row['题型'] || row['category'] || '未分类',
                     difficulty: parseInt(row['难度']) || 1
                 };
             });
