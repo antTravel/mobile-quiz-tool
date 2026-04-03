@@ -35,7 +35,7 @@
                     ].filter(opt => opt),
                     answer: row.答案 || '',
                     explanation: row.解析 || '',
-                    category: row.分类 || '未分类',
+                    category: row.题型 || '未分类',
                     difficulty: parseInt(row.难度) || 1
                 }));
                 
@@ -47,9 +47,35 @@
         }
         
         function detectType(row) {
+            // 优先判断是否有题型列
+            if (row.题型) {
+                if (row.题型.includes('判断')) return 'judge';
+                if (row.题型.includes('多选')) return 'multiple';
+                if (row.题型.includes('单选')) return 'single';
+            }
+            
             const answer = row.答案 || '';
-            if (answer.length > 1) return 'multiple';
-            if (row.题目 && row.题目.includes('判断')) return 'judge';
+            const question = row.题目 || '';
+            
+            // 判断题特征：答案通常是"正确"/"错误"/"对"/"错"
+            if (answer === '正确' || answer === '错误' || answer === '对' || answer === '错' || answer ==='√' || answer === '×') {
+                return 'judge';
+            }
+            
+            // 多选题特征：答案包含多个字母（如"ABC"、"ABD"等）
+            // 或者答案用逗号/顿号分隔（如"A,B,C"、"A、B、C"）
+            if (answer.length > 1 && /^[A-Da-d,，、]+$/.test(answer)) {
+                // 如果答案长度大于1且都是字母或分隔符，很可能是多选题
+                const letters = answer.replace(/[^A-Da-d]/g, '');
+                if (letters.length > 1) return 'multiple';
+            }
+            
+            // 单选题：答案长度为1个字母
+            if (answer.length === 1 && /^[A-Da-d]$/.test(answer)) {
+                return 'single';
+            }
+            
+            // 默认判断为单选题
             return 'single';
         }
         

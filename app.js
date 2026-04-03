@@ -15,7 +15,7 @@ class ExamApp {
             timePerQuestion: 120,
             questionsPerSession: 20,
             darkMode: false,
-            vibration: true,
+            vibration: false,
             categories: []
         };
         this.settings = { ...defaultSettings, ...this.settings };
