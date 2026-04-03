@@ -497,7 +497,16 @@ class ExamApp {
             return;
         }
 
-        // 单选/多选题
+        // 多选题
+        if (question.type === 'multiple') {
+            question.options.forEach((option, index) =>{
+                const optionDiv = this.createOptionElement(letters[index], option);
+                container.appendChild(optionDiv);
+            });
+            return;
+        }
+
+        // 单选题
         question.options.forEach((option, index) => {
             const optionDiv = this.createOptionElement(letters[index], option);
             container.appendChild(optionDiv);
@@ -516,76 +525,92 @@ class ExamApp {
             <div class="option-text">${text}</div>
         `;
 
+        const question = this.currentExam[this.currentQuestionIndex];
+        const isMultiple = question && question.type === 'multiple';
+
         // 绑定点击+触摸事件
         optionDiv.addEventListener('click', () => {
-            this.selectAnswer(letter);
+            if(isMultiple){
+                this.toggleMultipleAnswer(letter);
+            } else {
+                this.selectSingleAnswer(letter);
+            }
         });
+
         optionDiv.addEventListener('touchend', (e) => {
             e.preventDefault();
-            this.selectAnswer(letter);
+            if(isMultiple){
+                this.toggleMultipleAnswer(letter);
+            } else {
+                this.selectSingleAnswer(letter);
+            }
         });
 
         // 长按选中（多选题）
         optionDiv.addEventListener('long-press', () => {
-            this.selectAnswer(letter);
             this.showToast(`选中选项 ${letter}`, 'info');
+            if(isMultiple){
+                this.toggleMultipleAnswer(letter);
+            } else {
+                this.selectSingleAnswer(letter);
+            }
         });
 
         return optionDiv;
     }
 
-    /* renderOptions(question) {
-        const container = document.getElementById('optionsContainer');
-        container.innerHTML = '';
-
-        const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-
-        question.options.forEach((option, index) => {
-            const optionDiv = document.createElement('div');
-            optionDiv.className = 'option-item';
-            optionDiv.dataset.value = letters[index];
-
-            optionDiv.innerHTML = `
-                <div class="option-letter">${letters[index]}</div>
-                <div class="option-text">${option}</div>
-            `;
-
-            optionDiv.addEventListener('click', () => {
-                this.selectAnswer(letters[index]);
-            });
-
-            container.appendChild(optionDiv);
+    selectSingleAnswer(answer){
+        document.querySelectorAll('.option-item').forEach(item => {
+            item.classList.remove('selected');
         });
-
-        // 判断题特殊处理
-        if (question.type === 'judge') {
-            // 判断题只有两个选项
-            const judgeOptions = [
-                { letter: 'A', text: '正确' },
-                { letter: 'B', text: '错误' }
-            ];
-
-            container.innerHTML = '';
-            judgeOptions.forEach(opt => {
-                const optionDiv = document.createElement('div');
-                optionDiv.className = 'option-item';
-                optionDiv.dataset.value = opt.letter;
-
-                optionDiv.innerHTML = `
-                    <div class="option-letter">${opt.letter}</div>
-                    <div class="option-text">${opt.text}</div>
-                `;
-
-                optionDiv.addEventListener('click', () => {
-                    this.selectAnswer(opt.letter);
-                });
-
-                container.appendChild(optionDiv);
-            });
+        const selectedOption = document.querySelector(`.option-item[data-value="${answer}"]`);
+        if(selectedOption){
+            selectedOption.classList.add('selected');
         }
-    } */
 
-    selectAnswer(answer, save = true) {
+        this.userAnswers[this.currentQuestionIndex] = answer;
+
+        if (this.settings.vibration && navigator.vibrate) {
+            // 不同平台振动模式
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                navigator.vibrate(30); // iOS短振动
+            } else {
+                navigator.vibrate(50); // Android标准振动
+            }
+        }
+    }
+
+    toggleMultipleAnswer(answer){
+        const optionElement = document.querySelector(`.option-item[data-value="${answer}"]`);
+
+        let currentAnswer = this.userAnswers[this.currentQuestionIndex];
+        if(!Array.isArray(currentAnswer)){
+            currentAnswer =[];
+        }
+
+        const index = currentAnswer.indexOf(answer);
+        if(index === -1){
+            currentAnswer.push(answer);
+            optionElement.classList.add('selected');
+        } else {
+            currentAnswer.splice(index, 1);
+            optionElement.classList.remove('selected');
+        }
+        
+        this.userAnswers[this.currentQuestionIndex] = currentAnswer;
+
+        if (this.settings.vibration && navigator.vibrate) {
+            // 不同平台振动模式
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                navigator.vibrate(30); // iOS短振动
+            } else {
+                navigator.vibrate(50); // Android标准振动
+            }
+        }
+
+    }
+
+    /* selectAnswer(answer, save = true) {
         const question = this.currentExam[this.currentQuestionIndex];
         
         // 多选题处理
@@ -627,44 +652,8 @@ class ExamApp {
                 navigator.vibrate(50); // Android标准振动
             }
         }
-    }
-    /* selectAnswer(answer, save = true) {
-        // 清除之前的选中状态
-        document.querySelectorAll('.option-item').forEach(item => {
-            item.classList.remove('selected');
-        });
-
-        // 标记选中的选项
-        const selectedOption = document.querySelector(`.option-item[data-value="${answer}"]`);
-        if (selectedOption) {
-            selectedOption.classList.add('selected');
-        }
-
-        // 保存答案
-        if (save) {
-            this.userAnswers[this.currentQuestionIndex] = answer;
-            
-            // 如果是多选，需要特殊处理（这里简化为单选）
-            const question = this.currentExam[this.currentQuestionIndex];
-            if (question.type === 'multiple') {
-                // 多选题需要数组存储
-                if (!Array.isArray(this.userAnswers[this.currentQuestionIndex])) {
-                    this.userAnswers[this.currentQuestionIndex] = [];
-                }
-                const index = this.userAnswers[this.currentQuestionIndex].indexOf(answer);
-                if (index === -1) {
-                    this.userAnswers[this.currentQuestionIndex].push(answer);
-                } else {
-                    this.userAnswers[this.currentQuestionIndex].splice(index, 1);
-                }
-            }
-        }
-
-        // 振动反馈
-        if (this.settings.vibration && navigator.vibrate) {
-            navigator.vibrate(50);
-        }
     } */
+
 
     prevQuestion() {
         if (this.currentQuestionIndex > 0) {
@@ -672,11 +661,6 @@ class ExamApp {
             this.showToast('上一题', 'info');
         }
     }
-    /* prevQuestion() {
-        if (this.currentQuestionIndex > 0) {
-            this.showQuestion(this.currentQuestionIndex - 1);
-        }
-    } */
 
     nextQuestion() {
         if (this.currentQuestionIndex < this.currentExam.length - 1) {
@@ -686,13 +670,6 @@ class ExamApp {
             this.submitExam();
         }
     }
-    /* nextQuestion() {
-        if (this.currentQuestionIndex < this.currentExam.length - 1) {
-            this.showQuestion(this.currentQuestionIndex + 1);
-        } else {
-            this.submitExam();
-        }
-    } */
 
     submitExam() {
         clearInterval(this.timerInterval);
@@ -1435,6 +1412,3 @@ window.addEventListener('DOMContentLoaded', () => {
 
     window.examApp = new ExamApp();
 });
-/* window.addEventListener('DOMContentLoaded', () => {
-    window.examApp = new ExamApp();
-}); */
