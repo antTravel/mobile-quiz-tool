@@ -34,6 +34,7 @@ class ExamApp {
         this.updateRecentSessions();
         this.applyTheme();
         this.registerServiceWorker();
+        this.setupHideNavOnScroll();
         
         // 首次加载显示提示
         if (this.questions.length === 0) {
@@ -1389,6 +1390,30 @@ class ExamApp {
                     });
             });
         }
+    }
+
+    setupHideNavOnScroll(){
+        let lastScrollY = 0;
+        let ticking = false;
+
+        window.addEventListener('scroll', () => {
+            if(!ticking){
+                requestAnimationFrame(() => {
+                    const nav = document.querySelector('.bottom-nav');
+                    const currentScrollY = window.scrollY;
+
+                    if(currentScrollY > lastScrollY && currentScrollY > 100){
+                        nav.classList.add('hide');
+                    } else if (currentScrollY < lastScrollY) {
+                        nav.classList.remove('hide');
+                    }
+
+                    lastScrollY = currentScrollY;
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
     }
 }
 

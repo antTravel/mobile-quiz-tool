@@ -604,17 +604,24 @@ input:checked + .slider:before {
     position: fixed;
     bottom: 0;
     left: 0;
+    right: 0;
     width: 100%;
     background: white;
     border-top: 1px solid #eee;
     display: flex;
     justify-content: space-around;
-    padding: 10px 0;
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    padding: 4px 0;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
     max-width: 800px;
     margin: 0 auto;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 -1px 8px rgba(0,0,0,0.08);
     z-index: 1000;
+    transition: transform 0.3s ease;
+    transform: translateY(0);
+}
+
+.bottom-nav.hide {
+    transform: translateY(100%);
 }
 
 .nav-item {
@@ -625,27 +632,29 @@ input:checked + .slider:before {
     border: none;
     color: #666;
     cursor: pointer;
-    padding: 10px;
+    gap: 2px;
+    padding: 4px;
     flex: 1;
     transition: all 0.3s;
+    font-size: 11px;
 }
 
 .nav-item i {
-    font-size: 1.2rem;
-    margin-bottom: 5px;
+    font-size: 1rem;
+    margin-bottom: 2px;
 }
 
 .nav-item span {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
 }
 
 .nav-item.active {
     color: #4CAF50;
-    transform: translateY(-5px);
+    transform: translateY(-1px);
 }
 
 .nav-item.active i {
-    font-size: 1.3rem;
+    font-size: 1.05rem;
 }
 
 /* 消息提示 */
