@@ -475,6 +475,19 @@ class ExamApp {
             this.selectAnswer(userAnswer, false);
         }
 
+        const savedAnswer = this.userAnswers[index];
+        if(savedAnswer !== undefined){
+            if(Array.isArray(savedAnswer)){
+                savedAnswer.forEach(ans => {
+                    const el = document.querySelector(`.option-item[data-value="${ans}"]`);
+                    if (el) el.classList.add('selected');
+                });
+            }
+            else {
+                const el = document.querySelector(`.option-item[data-value="${savedAnswer}"]`);
+                if(el) el.classList.add('selected');
+            }
+        }
         this.updateProgress();
     }
 
@@ -673,6 +686,19 @@ class ExamApp {
     }
 
     submitExam() {
+
+        function normalizeAnswer(answer){
+            if(Array.isArray(answer)){
+                return answer.sort().join('');
+            }
+
+            if(typeof answer === 'string'){
+                return answer.split(',').map(s => s.trim()).sort().join('');
+            }
+
+            return String(answer);
+        }
+
         clearInterval(this.timerInterval);
         
         let score = 0;
@@ -685,15 +711,25 @@ class ExamApp {
             let isCorrect = false;
 
             if (question.type === 'multiple') {
+                const userKey = normalizeAnswer(userAnswer);
+                const correctKey = normalizeAnswer(correctAnswer);
+                isCorrect = userKey === correctKey;
+
                 // 多选需要完全匹配
-                if (Array.isArray(userAnswer) && Array.isArray(correctAnswer)) {
+                /* if (Array.isArray(userAnswer) && Array.isArray(correctAnswer)) {
                     const sortedUser = [...userAnswer].sort();
                     const sortedCorrect = [...correctAnswer].sort();
                     isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
-                }
+                } */
             } else {
-                // 单选和判断题
-                isCorrect = userAnswer === correctAnswer;
+                if(question.type === 'judge'){
+                    const userAns = userAnswer === '正确' ? 'A' : (userAnswer === '错误' ? 'B' : userAnswer);
+                    const correctAns = correctAnswer === '正确' ? 'A' : (correctAnswer === '错误' ? 'B' : correctAnswer);
+                    isCorrect = userAns === correctAns;
+                } else {
+                    isCorrect = userAnswer === correctAnswer;
+                }
+                
             }
 
             if (isCorrect) {
@@ -834,9 +870,18 @@ class ExamApp {
                 wrongItem.style.backgroundColor = this.settings.darkMode ? '#333' : '#fff';
                 wrongItem.style.borderRadius = '8px';
 
-                const answerText = Array.isArray(item.userAnswer) 
+                let answerText;
+                if(Array.isArray(item.userAnswer)){
+                    answerText = item.userAnswer.join(', ');
+                } else {
+                    const ans = String(item.userAnswer).toUpperCase();
+                    if(ans === 'A') answerText = 'A. 正确';
+                    else if (ans === 'B') answerText = 'B. 错误';
+                    else answerText = ans;
+                }
+                /* const answerText = Array.isArray(item.userAnswer) 
                     ? item.userAnswer.join(', ') 
-                    : item.userAnswer;
+                    : item.userAnswer; */
                 
                 const correctAnswerText = Array.isArray(question.answer)
                     ? question.answer.join(', ')
