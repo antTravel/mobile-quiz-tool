@@ -125,10 +125,6 @@ class ExamApp {
             item.addEventListener('click', (e) => {
                 this.handleNavClick(e);
             });
-            item.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                this.handleNavClick(e);
-            });
         });
 
         this.addMultiEventListener('startExamBtn', ['click', 'touchend'], () => {
@@ -321,10 +317,20 @@ class ExamApp {
     addMultiEventListener(elementId, events, handler) {
         const element = document.getElementById(elementId);
         if (!element) return;
+
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const targetEvents = isTouchDevice ? ['touchend'] : ['click'];
         
-        events.forEach(event => {
+        targetEvents.forEach(event => {
             element.addEventListener(event, (e) => {
                 if (event === 'touchend') e.preventDefault();
+                if (element.disabled || element.classList.contains('no-click')){
+                    return;
+                }
+                element.classList.add('no-click');
+                setTimeout(() => {
+                    element.classList.remove('no-click');
+                }, 300);
                 handler(e);
             });
         });
@@ -679,14 +685,6 @@ class ExamApp {
                 }
             });
 
-            optionDiv.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                if (isMultiple) {
-                    this.toggleMultipleAnswerWithCheck(letter);
-                } else {
-                    this.checkAndAnswer(letter);
-                }
-            });
         }
 
         return optionDiv;
@@ -1668,19 +1666,20 @@ class ExamApp {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+    
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(e) {
+        const now = Date.now();
+        if (now - lastTouchEnd < 300) {
+            e.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, { passive: false });
+
     document.addEventListener('touchstart', function(e) {
         if (e.touches.length > 1) {
             e.preventDefault();
         }
-    }, { passive: false });
-
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function(e) {
-        const now = (new Date()).getTime();
-        if (now - lastTouchEnd <= 300) {
-            e.preventDefault();
-        }
-        lastTouchEnd = now;
     }, { passive: false });
 
     window.examApp = new ExamApp();

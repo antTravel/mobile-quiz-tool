@@ -3,6 +3,8 @@
     padding: 0;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
 }
 
 body {
@@ -430,6 +432,7 @@ body {
     transition: all 0.2s ease;
     border: 1px solid transparent;
     position: relative;
+    user-select: none;
 }
 
 .option-item:active {
@@ -761,6 +764,8 @@ body {
     border-radius: 20px 20px 0 0;
     transition: transform 0.3s ease;
     z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+    pointer-events: auto;
 }
 
 @media (min-width: 768px) {
