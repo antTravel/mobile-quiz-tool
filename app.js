@@ -550,8 +550,9 @@ class ExamApp {
                     resultTitle.style.color = '#f44336';
                 }
                 
-                const userAnswerText = this.formatAnswer(this.userAnswers[index]);
-                const correctAnswerText = this.formatAnswer(question.answer);
+                const currentQuestion = this.currentExam[index];
+                const userAnswerText = this.formatAnswer(this.userAnswers[index], currentQuestion.type);
+                const correctAnswerText = this.formatAnswer(question.answer, currentQuestion.type);
                 if (resultMessage) resultMessage.textContent = `你的答案：${userAnswerText} | 正确答案：${correctAnswerText}`;
             }
             
@@ -574,13 +575,24 @@ class ExamApp {
         this.updateProgress();
     }
 
-    formatAnswer(answer) {
+    formatAnswer(answer, questionType = 'single') {
+        if (!answer) return '未作答';
+
         if (Array.isArray(answer)) {
             return answer.join(', ');
         }
-        if (answer === 'A') return '正确';
-        if (answer === 'B') return '错误';
-        return answer;
+
+        const str = String(answer).toUpperCase();
+        if (questionType === 'judge'){
+        if (str === 'A') return '正确';
+        if (str === 'B') return '错误';
+        return str;
+        }
+        // 多选题：ABC -> A, B, C
+        if (str.length > 1 && /^[A-F]+$/i.test(str)) {
+            return str.split('').join(', ');
+        }
+        return str;
     }
 
     renderOptionsWithFeedback(question, isAnswered) {
@@ -626,30 +638,35 @@ class ExamApp {
         optionDiv.dataset.value = letter;
         optionDiv.style.touchAction = 'manipulation';
 
-        const isCorrectOption = this.isOptionCorrect(letter, correctAnswer);
+        const isCorrectOption = this.isOptionCorrect(letter, correctAnswer, questionType);
         const isUserSelected = this.isOptionSelected(letter, userAnswer);
         
-        let additionalClass = '';
-        if (isAnswered) {
-            if (isCorrectOption) {
-                additionalClass = ' correct-option';
-            }
-            if (isUserSelected && !isCorrectOption) {
-                additionalClass = ' wrong-option';
-            }
-            if (isUserSelected && isCorrectOption) {
-                additionalClass = ' correct-option';
+        optionDiv.classList.remove('correct-option', 'wrong-option');
+
+        if(isAnswered){
+            if(isCorrectOption && isUserSelected){
+                optionDiv.classList.add('correct-option');
+            } else if (!isCorrectOption && isUserSelected){
+                optionDiv.classList.add('wrong-option');
             }
         }
 
-        optionDiv.className = 'option-item' + additionalClass;
+        let markHtml = '';
+        if (!isAnswered) {
+            if (isCorrectOption && isUserSelected) {
+                markHtml = '<div class="option-mark" style="color: #4CAF50;">✅</div>';
+            }
+            else if (isUserSelected && !isCorrectOption) {
+                markHtml = '<div class="option-mark" style="color: #f44336;">❌</div>';
+            }
+        }
+      
 
-        optionDiv.innerHTML = `
-            <div class="option-letter">${letter}</div>
-            <div class="option-text">${text}</div>
-            ${isAnswered && isCorrectOption ? '<div class="option-mark"><i class="fas fa-check"></i></div>' : ''}
-            ${isAnswered && isUserSelected && !isCorrectOption ? '<div class="option-mark"><i class="fas fa-times"></i></div>' : ''}
-        `;
+        optionDiv.innerHTML = ` 
+            <div class="option-letter">${letter}</div> 
+            <div class="option-text">${text}</div> 
+            ${markHtml} 
+            `;
 
         if (!isAnswered) {
             const isMultiple = questionType === 'multiple';
@@ -673,9 +690,19 @@ class ExamApp {
         }
 
         return optionDiv;
+        
     }
 
-    isOptionCorrect(letter, correctAnswer) {
+    isOptionCorrect(letter, correctAnswer, questionType = 'single') {
+        if(questionType === 'judge'){
+           const correctMap = { 
+            '正确': 'A', '对': 'A', '√': 'A', 'true': 'A', '是': 'A',
+            '错误': 'B', '错': 'B', '×': 'B', 'false': 'B', '否': 'B'
+        };
+           const normalizedCorrect = correctMap[String(correctAnswer).toLowerCase()] || String(correctAnswer).toUpperCase();
+           return letter === normalizedCorrect;
+        }
+
         if (Array.isArray(correctAnswer)) {
             return correctAnswer.includes(letter);
         }
@@ -687,62 +714,94 @@ class ExamApp {
         if (Array.isArray(userAnswer)) {
             return userAnswer.includes(letter);
         }
-        return letter === userAnswer;
+        const answerStr = String(userAnswer).toUpperCase();
+        return answerStr.includes(letter);
     }
 
     isAnswerCorrect(userAnswer, question) {
         const correctAnswer = question.answer;
         
+        let normalizedUserAnswer;
+        if(Array.isArray(userAnswer)){
+            normalizedUserAnswer = userAnswer.sort().join('');
+        } else {
+            normalizedUserAnswer = String(userAnswer).replace(/[^A-F]/g,'').split('').sort().join('');
+        }
+
+        let normalizedCorrectAnswer;
+        if(Array.isArray(correctAnswer)){
+            normalizedCorrectAnswer = correctAnswer.sort().join('');
+        } else {
+            normalizedCorrectAnswer = String(correctAnswer).replace(/[^A-F]/g, '').split('').sort().join('');
+        }
+
         if (question.type === 'multiple') {
-            const userKey = this.normalizeAnswer(userAnswer);
-            const correctKey = this.normalizeAnswer(correctAnswer);
-            return userKey === correctKey;
+            return normalizedUserAnswer === normalizedCorrectAnswer;
         }
         
         if (question.type === 'judge') {
-            const userAns = userAnswer === '正确' ? 'A' : (userAnswer === '错误' ? 'B' : userAnswer);
-            const correctAns = correctAnswer === '正确' ? 'A' : (correctAnswer === '错误' ? 'B' : correctAnswer);
-            return userAns === correctAns;
+            const userMap = { '正确': 'A', '对': 'A', '√': 'A', 'true': 'A', '是': 'A', '错误': 'B', '错': 'B', '×': 'B', 'false': 'B', '否': 'B' };
+            const userNorm = userMap[String(userAnswer).toLowerCase()] || String(userAnswer).toUpperCase();
+            const correctNorm = userMap[String(correctAnswer).toLowerCase()] || String(correctAnswer).toUpperCase();
+            return userNorm === correctNorm;
         }
         
-        return userAnswer === correctAnswer;
+        // 单选题
+        const userNorm = String(userAnswer).toUpperCase().trim();
+        const correctNorm = String(correctAnswer).toUpperCase().trim();
+        if(userNorm === 'B' && correctNorm === '错误') return false;
+        if(userNorm === 'A' && correctNorm === '正确') return false;
+
+        return userNorm  === correctNorm;
     }
 
     normalizeAnswer(answer) {
+        if (!answer) return '';
         if (Array.isArray(answer)) {
-            return [...answer].sort().join('');
+            return answer
+            .map(a => String(a).trim().toUpperCase())
+            .filter(a => a.length > 0)
+            .sort()
+            .join('');
         }
+
         if (typeof answer === 'string') {
-            return answer.split(',').map(s => s.trim()).sort().join('');
+        // 去除所有空格、逗号、分号、顿号等分隔符
+        let cleaned = answer.replace(/[\s,;、]+/g, '');
+        cleaned = cleaned.toUpperCase();
+        
+        // 处理像 "ABC" 这样的连续字母
+        if (cleaned.length > 1 && /^[A-F]+$/i.test(cleaned)) {
+            return cleaned.split('').sort().join('');
         }
-        return String(answer);
+        
+        // 处理像 "A,B,C" 这样的（上面已经去掉了逗号，但以防万一）
+        if (cleaned.includes(',')) {
+            return cleaned.split(',').map(s => s.trim()).sort().join('');
+        }
+        
+        return cleaned;
+        }
+
+        return String(answer).toUpperCase().trim();
     }
 
     checkAndAnswer(answer) {
         const question = this.currentExam[this.currentQuestionIndex];
-        
-        document.querySelectorAll('.option-item').forEach(item => {
-            item.classList.remove('selected');
-        });
-        
-        const selectedOption = document.querySelector(`.option-item[data-value="${answer}"]`);
-        if (selectedOption) {
-            selectedOption.classList.add('selected');
-        }
         
         this.userAnswers[this.currentQuestionIndex] = answer;
         
         const isCorrect = this.isAnswerCorrect(answer, question);
         this.userAnswerStatus[this.currentQuestionIndex] = isCorrect;
         
-        if (this.settings.vibration && navigator.vibrate) {
-            navigator.vibrate(isCorrect ? 50 : 100);
-        }
-        
         if (!isCorrect) {
             this.addWrongQuestion(question, answer);
         } else if (this.isWrongPracticeMode) {
             this.removeFromWrongQuestions(question.id);
+        }
+
+        if (this.settings.vibration && navigator.vibrate) {
+            navigator.vibrate(isCorrect ? 50 : 100);
         }
         
         this.showQuestionWithFeedback(this.currentQuestionIndex);
@@ -1267,20 +1326,32 @@ class ExamApp {
         if (type) {
             if (type.includes('多选')) return 'multiple';
             if (type.includes('判断')) return 'judge';
+            if (type.includes('单选')) return 'single';
             return 'single';
         }
-        
-       const answer = row['答案'] || row['answer'] || '';
-        if (Array.isArray(answer) || (typeof answer === 'string' && answer.length > 1)) {
-            return 'multiple';
+
+        const answer = row['答案'] || row['answer'] || '';
+        if (typeof answer === 'string' && answer.length > 0) {
+            const hasMultipleLetters = /^[A-F,]+$/i.test(answer) && answer.length > 1 && !/^[A-F]$/i.test(answer);
+            if(hasMultipleLetters){
+                return 'multiple';
+            }
         }
-        
-        // 根据选项内容判断
+
         const options = this.parseOptions(row);
-        if (options.length === 2 && options.includes('正确') && options.includes('错误')) {
+        const isJudgeByOptions = (
+            options.length === 2 && (
+                (options[0] === '正确' && options[1] === '错误') ||
+                (options[0] === '错误' && options[1] === '正确') ||
+                (options[0] === '对' && options[1] === '错') ||
+                (options[0] === '错' && options[1] === '对') ||
+                (options[0] === '√' && options[1] === '×') ||
+                (options[0] === '×' && options[1] === '√')));
+        const notSepcifiedAsSingle = !type || (!type.includes('单选'));
+        if (isJudgeByOptions && notSepcifiedAsSingle){
             return 'judge';
-        }
-        
+        }      
+       
         return 'single';
     }
 
@@ -1304,16 +1375,27 @@ class ExamApp {
 
     parseAnswer(row) {
         const answer = row['答案'] || row['answer'] || '';
+
+        if (answer === '正确' || answer === '对' || answer === '√') {
+        return 'A';
+        }
+
+        if (answer === '错误' || answer === '错' || answer === '×') {
+        return 'B';
+        }
         
         if (Array.isArray(answer)) {
             return answer;
         }
         
         if (typeof answer === 'string') {
-            if (answer.length > 1 && !answer.includes('正确') && !answer.includes('错误')) {
-                return answer.split('').sort();
+            if (answer.length > 1 && /^[A-F]+$/i.test(answer)) {
+                return answer.toUpperCase().split('').sort();
             }
-            return answer;
+            if (answer.includes(',')) {
+            return answer.split(',').map(s => s.trim().toUpperCase()).sort();
+            }
+            return answer.toUpperCase();
         }
         
         return '';

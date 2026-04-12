@@ -443,13 +443,17 @@ body {
 }
 
 .option-item.correct-option {
-    background: #e8f5e9;
-    border-color: #4CAF50;
+    background: #e8f5e9 !important;
+    border-color: #4CAF50 !important;
+    color: #2e7d32 !important;
+    font-weight: bold !important;
 }
 
 .option-item.wrong-option {
     background: #ffebee;
-    border-color: #f44336;
+    border-color: #f44336 !important;
+    color: #c62828 !important;
+    font-weight: bold;
 }
 
 .option-letter {
@@ -473,7 +477,9 @@ body {
 
 .option-mark {
     margin-left: 8px;
+    font-weight: bold;
     font-size: 1rem;
+    line-height: 1;
 }
 
 .option-mark .fa-check {
